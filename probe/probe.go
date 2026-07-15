@@ -9,15 +9,19 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 )
 
-// Groups we offer. X25519MLKEM768 first so a capable server picks it; X25519
-// as fallback so a non-capable server still completes the handshake and we can
-// record what it chose (rather than seeing a handshake failure = unknown).
+// Groups we enable. Go ignores the order of this list and applies its own
+// internal preference, so this is a set, not a ranking: the server selects one
+// of these from the ClientHello. Enabling X25519 alongside the PQC group lets a
+// non-PQC server still complete the handshake, so we observe its choice instead
+// of a bare handshake failure.
 var offered = []tls.CurveID{tls.X25519MLKEM768, tls.X25519}
 
 func groupName(id tls.CurveID) string {
@@ -35,11 +39,26 @@ func groupName(id tls.CurveID) string {
 	}
 }
 
+// isPublicIP reports whether ip is a globally routable unicast address. It
+// rejects every special-use range that could point the probe at non-public
+// infrastructure, including CGNAT (100.64.0.0/10), which Go's IsPrivate misses.
+func isPublicIP(ip net.IP) bool {
+	if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() {
+		return false
+	}
+	if v4 := ip.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+		return false
+	}
+	return true
+}
+
 type result struct {
 	Host       string `json:"host"`
 	Group      string `json:"group"`       // negotiated group name, "" on error
 	GroupID    uint16 `json:"group_id"`    // negotiated group id, 0 on error
 	TLSVersion uint16 `json:"tls_version"` // 0 on error
+	PeerIP     string `json:"peer_ip,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
@@ -50,16 +69,29 @@ func probe(host string, timeout time.Duration) result {
 	defer cancel()
 
 	dialer := &tls.Dialer{
-		NetDialer: &net.Dialer{},
+		NetDialer: &net.Dialer{
+			// Reject non-public peers after DNS resolution but before the socket
+			// connects, so private infrastructure is never handshaked at all.
+			Control: func(_, address string, _ syscall.RawConn) error {
+				host, _, err := net.SplitHostPort(address)
+				if err != nil {
+					return err
+				}
+				if ip := net.ParseIP(host); ip == nil || !isPublicIP(ip) {
+					return fmt.Errorf("non-public address: %s", host)
+				}
+				return nil
+			},
+		},
 		Config: &tls.Config{
 			MinVersion:       tls.VersionTLS13,
 			MaxVersion:       tls.VersionTLS13,
 			CurvePreferences: offered,
 			ServerName:       hostname(host),
-			// We measure the negotiated group, chosen in ServerHello before cert
-			// validation matters. Skipping verification keeps endpoints with cert
-			// issues measurable instead of collapsing them to unknown.
-			InsecureSkipVerify: true,
+			// Certificate identity is verified against ServerName. A verdict is
+			// only meaningful if the PQC exchange happened with the named
+			// endpoint, not with a MITM, captive portal, or misrouted vhost, so
+			// a certificate failure must collapse to unknown, not a false result.
 		},
 	}
 
@@ -69,6 +101,10 @@ func probe(host string, timeout time.Duration) result {
 		return r
 	}
 	defer conn.Close()
+
+	if tcp, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+		r.PeerIP = tcp.IP.String()
+	}
 
 	state := conn.(*tls.Conn).ConnectionState()
 	r.Group = groupName(state.CurveID)
@@ -126,6 +162,12 @@ func main() {
 
 	enc := json.NewEncoder(os.Stdout)
 	for r := range results {
-		enc.Encode(r)
+		if err := enc.Encode(r); err != nil {
+			// A lost line would silently drop a host from the dataset; fail loud
+			// so the caller (which reconciles host counts) treats the run as
+			// broken rather than publishing incomplete results.
+			fmt.Fprintln(os.Stderr, "probe: encode:", err)
+			os.Exit(1)
+		}
 	}
 }

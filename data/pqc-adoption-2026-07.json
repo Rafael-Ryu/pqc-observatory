@@ -1,6 +1,6 @@
 {
   "counts": {
-    "not_supported": 4,
+    "not_observed": 4,
     "supported": 15,
     "unknown": 1
   },
@@ -10,7 +10,7 @@
       "group": "X25519",
       "group_id": 29,
       "host": "amazon.com",
-      "verdict": "not_supported"
+      "verdict": "not_observed"
     },
     {
       "detail": "negotiated X25519MLKEM768",
@@ -52,7 +52,7 @@
       "group": "X25519",
       "group_id": 29,
       "host": "github.com",
-      "verdict": "not_supported"
+      "verdict": "not_observed"
     },
     {
       "detail": "negotiated X25519MLKEM768",
@@ -101,14 +101,14 @@
       "group": "X25519",
       "group_id": 29,
       "host": "mozilla.org",
-      "verdict": "not_supported"
+      "verdict": "not_observed"
     },
     {
       "detail": "negotiated X25519",
       "group": "X25519",
       "group_id": 29,
       "host": "netflix.com",
-      "verdict": "not_supported"
+      "verdict": "not_observed"
     },
     {
       "detail": "negotiated X25519MLKEM768",

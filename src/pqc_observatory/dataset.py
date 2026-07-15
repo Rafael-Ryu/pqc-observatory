@@ -6,15 +6,23 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
-# Hybrid post-quantum key exchange we offer and confirm. id 4588 == 0x11EC,
-# RFC 9370 / draft-ietf-tls-hybrid-design final. This is the only group whose
-# negotiation we treat as PQC support.
+# Hybrid post-quantum key exchange we enable and confirm. id 4588 == 0x11EC,
+# defined by draft-kwiatkowski-tls-ecdhe-mlkem and registered in the IANA TLS
+# Supported Groups registry. This is the only group whose negotiation we treat
+# as PQC support.
 PQC_GROUP_ID = 4588
 PQC_GROUP_NAME = "X25519MLKEM768"
 
+# A supported verdict requires a completed TLS 1.3 handshake (0x0304); anything
+# else is not a valid observation of the group being negotiated.
+TLS13_VERSION = 0x0304
+
 METHODOLOGY_VERSION = "m0-2026-07"
 
-Verdict = Literal["supported", "not_supported", "unknown"]
+# not_observed, not "not_supported": the server negotiated a classical group,
+# which proves PQC was not selected, not that the server is incapable of it (Go
+# ignores our offered order, and a server may simply prefer classical).
+Verdict = Literal["supported", "not_observed", "unknown"]
 
 
 class ProbeResult(TypedDict, total=False):
@@ -22,6 +30,7 @@ class ProbeResult(TypedDict, total=False):
     group: str
     group_id: int
     tls_version: int
+    peer_ip: str
     error: str
 
 
@@ -35,17 +44,28 @@ class Entry(TypedDict):
 
 def classify(result: ProbeResult) -> Verdict:
     """Precision over recall: `supported` only when the server negotiated the
-    PQC group in its ServerHello. Anything ambiguous is `unknown`, never a
-    false positive."""
+    PQC group over a completed TLS 1.3 handshake. Anything ambiguous or
+    internally inconsistent is `unknown`, never a false positive."""
     if result.get("error"):
         return "unknown"
     group_id = result.get("group_id", 0)
+    # bool is an int subclass but never a valid group id; reject anything that
+    # is not a plain int so a corrupted record (e.g. 4588.0) cannot pass.
+    if not isinstance(group_id, int) or isinstance(group_id, bool):
+        return "unknown"
     if group_id == PQC_GROUP_ID:
+        # An internally inconsistent record (PQC group id without a TLS 1.3
+        # handshake, or with a mismatched group name) means the probe output
+        # cannot be trusted for this host.
+        if result.get("tls_version") != TLS13_VERSION:
+            return "unknown"
+        if result.get("group") != PQC_GROUP_NAME:
+            return "unknown"
         return "supported"
     if group_id == 0:
         # Handshake produced no TLS 1.3 group (e.g. TLS 1.2-only server).
         return "unknown"
-    return "not_supported"
+    return "not_observed"
 
 
 def _detail(result: ProbeResult, verdict: Verdict) -> str:
@@ -60,8 +80,11 @@ def build_dataset(
     run_date: str,
     targets_sha256: str,
 ) -> dict[str, object]:
-    """Deterministic: same raw results + same inputs → byte-identical JSON
-    (callers dump with sort_keys=True). Entries are sorted by host."""
+    """The canonical dataset is a deterministic projection of the raw results
+    and stable methodology inputs only: same raw + same inputs → byte-identical
+    JSON (callers dump with sort_keys=True), independent of who or what machine
+    re-derives it. Environment provenance is recorded separately, not here, so
+    it cannot break third-party reproduction. Entries are sorted by host."""
     entries: list[Entry] = [
         {
             "host": r["host"],
@@ -72,7 +95,7 @@ def build_dataset(
         }
         for r in sorted(results, key=lambda r: r["host"])
     ]
-    counts = {v: 0 for v in ("supported", "not_supported", "unknown")}
+    counts = {v: 0 for v in ("supported", "not_observed", "unknown")}
     for e in entries:
         counts[e["verdict"]] += 1
     return {
