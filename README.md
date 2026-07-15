@@ -21,9 +21,10 @@ selected. Go ignores the offered order and applies its own preference, so the
 two groups are an enabled set, not a ranking. Certificate identity is verified
 against the hostname, so a result is only attributed to an endpoint that proved
 that identity. A Python layer (`src/pqc_observatory/`) runs the probe over a
-pinned target list, reconciles one result per host, and derives the dataset.
-Verdict logic is pure and unit-tested; the dataset re-derives byte-identically
-from the raw handshake results.
+pinned target list, samples each host five times, and aggregates by
+unanimity into one verdict per host. Verdict logic is pure and unit-tested;
+the dataset re-derives byte-identically from the raw handshake results. See
+METHODOLOGY.md for the full specification and caveats.
 
 Cross-checked independently with OpenSSL 3.6 (`openssl s_client -groups
 X25519MLKEM768`), which agrees with the probe on the negotiated group.
