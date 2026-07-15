@@ -1,0 +1,24 @@
+# pqc-observatory target list, pinned 2026-07.
+# Public endpoints only. One hostname per line; port defaults to 443.
+# Curated seed: major CDNs/clouds/SaaS plus a control set expected to be
+# classical-only. Verdicts come from the handshake, not from this grouping.
+cloudflare.com
+google.com
+www.google.com
+youtube.com
+gmail.com
+meta.com
+facebook.com
+instagram.com
+mozilla.org
+github.com
+gitlab.com
+microsoft.com
+apple.com
+amazon.com
+netflix.com
+wikipedia.org
+cloudflare-ech.com
+signal.org
+protonmail.com
+duckduckgo.com
