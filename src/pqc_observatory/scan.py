@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,16 @@ from .dataset import SAMPLES_PER_HOST, ProbeResult, build_dataset
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROBE_DIR = _REPO_ROOT / "probe"
+
+# ponytail: hostnames only, no ports — the probe always uses 443; full IDN
+# normalization is deferred (issue #7). Bounded length, labels 1-63 chars,
+# no leading/trailing hyphen per label — rejects a leading `-` (which a Go
+# flag parser would read as an option), an embedded `:port`, `/`, whitespace,
+# and empty labels. Punycode (`xn--...`) still matches.
+_HOSTNAME_RE = re.compile(
+    r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)"
+    r"(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$"
+)
 
 
 def _probe_source_sha256() -> str:
@@ -59,7 +70,10 @@ def run_probe(binary: Path, hosts: list[str]) -> list[ProbeResult]:
     if not hosts:
         return []
     proc = subprocess.run(
-        [str(binary), "-samples", str(SAMPLES_PER_HOST), *hosts],
+        # "--" ends flag parsing so a host (even one load_targets somehow let
+        # through with a leading "-") is always read as a positional arg, not
+        # a Go flag — belt and suspenders with the load_targets validation.
+        [str(binary), "-samples", str(SAMPLES_PER_HOST), "--", *hosts],
         capture_output=True,
         text=True,
         check=True,
@@ -109,9 +123,17 @@ def load_targets(path: Path) -> tuple[list[str], str]:
         for line in raw.decode("utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    dupes = sorted({h for h in hosts if hosts.count(h) > 1})
+    bad = sorted(h for h in hosts if not _HOSTNAME_RE.fullmatch(h))
+    if bad:
+        raise ValueError(f"invalid target hostnames: {bad}")
+    seen: set[str] = set()
+    dupes: set[str] = set()
+    for h in hosts:
+        if h in seen:
+            dupes.add(h)
+        seen.add(h)
     if dupes:
-        raise ValueError(f"duplicate targets: {dupes}")
+        raise ValueError(f"duplicate targets: {sorted(dupes)}")
     return hosts, sha
 
 
@@ -142,9 +164,16 @@ def _publish_atomic(artifacts: dict[Path, str]) -> None:
         for path, text in artifacts.items():
             data = text.encode("utf-8")
             want_sha = hashlib.sha256(data).hexdigest()
+            # .tmp-{pid} makes collision between concurrent runs unlikely, but
+            # O_EXCL|O_NOFOLLOW is what actually refuses a pre-existing file
+            # or a symlink planted at that path — plain Path.open("wb") would
+            # silently follow a symlink and clobber whatever it points at.
             tmp = path.with_suffix(path.suffix + f".tmp-{os.getpid()}")
             tmp_paths.append(tmp)
-            with tmp.open("wb") as f:
+            fd = os.open(
+                tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644
+            )
+            with os.fdopen(fd, "wb") as f:
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
@@ -161,6 +190,10 @@ def _publish_atomic(artifacts: dict[Path, str]) -> None:
 
 
 def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
+    # Validated before any path is built from it: out_dir / f"raw-{run_date}.jsonl"
+    # would otherwise let a run_date like "../../x" escape out_dir.
+    if not re.fullmatch(r"\d{4}-\d{2}", run_date):
+        raise ValueError(f"run_date must be YYYY-MM: {run_date!r}")
     probe_source_sha = verify_probe_source()
     hosts, sha = load_targets(targets_path)
     binary = build_probe(_REPO_ROOT / "build" / "probe")
