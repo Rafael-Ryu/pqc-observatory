@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"net/netip"
 	"os"
 	"sync"
 	"syscall"
@@ -116,16 +117,61 @@ func selfTest() error {
 	return runSelfTest(offered)
 }
 
-// isPublicIP reports whether ip is a globally routable unicast address. It
-// rejects every special-use range that could point the probe at non-public
-// infrastructure, including CGNAT (100.64.0.0/10), which Go's IsPrivate misses.
+// specialPurposePrefixes are IANA special-purpose address blocks that are
+// none of loopback/unspecified/link-local/multicast/RFC1918 (already checked
+// separately below) but are still not globally routable: documentation
+// ranges, benchmarking nets, NAT64, Teredo, CGNAT, and similar reserved
+// space. A poisoned or split-horizon DNS answer pointing a public hostname at
+// one of these must be rejected the same as private space.
+var specialPurposePrefixes = []netip.Prefix{
+	// IPv4
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"), // CGNAT
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"), // TEST-NET-1
+	netip.MustParsePrefix("192.88.99.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"), // TEST-NET-2
+	netip.MustParsePrefix("203.0.113.0/24"),  // TEST-NET-3
+	netip.MustParsePrefix("240.0.0.0/4"),
+	// IPv6
+	netip.MustParsePrefix("::/128"),
+	netip.MustParsePrefix("64:ff9b::/96"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("2001::/32"), // Teredo
+	netip.MustParsePrefix("2001:2::/48"),
+	netip.MustParsePrefix("2001:10::/28"),
+	netip.MustParsePrefix("2001:20::/28"),
+	netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("3fff::/20"),
+	netip.MustParsePrefix("5f00::/16"),
+}
+
+// isPublicIP reports whether ip is a globally routable unicast address. This
+// is an allowlist, not a partial denylist: an address must be valid, clear
+// every existing categorical check below, AND fall outside every reserved
+// prefix above before it counts as public. Only a genuinely global-unicast,
+// non-special address returns true.
 func isPublicIP(ip net.IP) bool {
 	if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
 		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() {
 		return false
 	}
-	if v4 := ip.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok || !addr.IsValid() {
 		return false
+	}
+	if addr.Is4In6() {
+		addr = addr.Unmap()
+	}
+	if !addr.IsGlobalUnicast() {
+		return false
+	}
+	for _, p := range specialPurposePrefixes {
+		if p.Contains(addr) {
+			return false
+		}
 	}
 	return true
 }
