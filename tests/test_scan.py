@@ -28,6 +28,41 @@ def test_load_targets_rejects_duplicates(tmp_path: Path) -> None:
         scan.load_targets(f)
 
 
+def test_load_targets_accepts_normal_hostnames_and_punycode(tmp_path: Path) -> None:
+    f = tmp_path / "targets.txt"
+    f.write_text("cloudflare.com\nxn--nxasmq6b.example\n")
+    hosts, _ = scan.load_targets(f)
+    assert hosts == ["cloudflare.com", "xn--nxasmq6b.example"]
+
+
+def test_load_targets_rejects_leading_hyphen(tmp_path: Path) -> None:
+    f = tmp_path / "targets.txt"
+    f.write_text("-evil.example\n")
+    with pytest.raises(ValueError, match="invalid target hostnames"):
+        scan.load_targets(f)
+
+
+def test_load_targets_rejects_port(tmp_path: Path) -> None:
+    f = tmp_path / "targets.txt"
+    f.write_text("host.example:8443\n")
+    with pytest.raises(ValueError, match="invalid target hostnames"):
+        scan.load_targets(f)
+
+
+def test_load_targets_rejects_slash(tmp_path: Path) -> None:
+    f = tmp_path / "targets.txt"
+    f.write_text("host.example/path\n")
+    with pytest.raises(ValueError, match="invalid target hostnames"):
+        scan.load_targets(f)
+
+
+def test_load_targets_rejects_over_length(tmp_path: Path) -> None:
+    f = tmp_path / "targets.txt"
+    f.write_text("a" * 254 + ".example\n")
+    with pytest.raises(ValueError, match="invalid target hostnames"):
+        scan.load_targets(f)
+
+
 def _sample(host: str, i: int, **extra: object) -> ProbeResult:
     return cast("ProbeResult", {"host": host, "sample_index": i, **extra})
 
@@ -86,7 +121,16 @@ def test_run_probe_parses_jsonl(monkeypatch: pytest.MonkeyPatch) -> None:
     out = scan.run_probe(Path("/probe"), ["a", "b"])
     assert [r["host"] for r in out] == ["a", "b"]
     # -samples must reflect the fixed methodology constant, not be hardcoded.
-    assert captured["cmd"] == ["/probe", "-samples", str(SAMPLES_PER_HOST), "a", "b"]
+    # "--" must end flag parsing so a host is always read as positional, even
+    # if one somehow reaches here with a leading "-".
+    assert captured["cmd"] == [
+        "/probe",
+        "-samples",
+        str(SAMPLES_PER_HOST),
+        "--",
+        "a",
+        "b",
+    ]
 
 
 def test_probe_source_pin_matches_committed() -> None:
@@ -120,6 +164,24 @@ def test_scan_verifies_probe_before_building(
 
     with pytest.raises(ValueError, match="probe source does not match"):
         scan.scan(targets, tmp_path / "data", run_date="2026-07")
+
+
+@pytest.mark.parametrize("bad_date", ["2026-07-01/../x", "../../etc"])
+def test_scan_rejects_path_traversal_run_date(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, bad_date: str
+) -> None:
+    targets = tmp_path / "t.txt"
+    targets.write_text("a.example\n")
+
+    def unreachable(*args: object, **kwargs: object) -> object:
+        raise AssertionError("must not run once run_date validation fails")
+
+    monkeypatch.setattr(scan, "verify_probe_source", unreachable)
+
+    out_dir = tmp_path / "data"
+    with pytest.raises(ValueError, match="run_date must be YYYY-MM"):
+        scan.scan(targets, out_dir, run_date=bad_date)
+    assert not out_dir.exists() or not list(out_dir.iterdir())
 
 
 def test_scan_writes_raw_and_dataset(
@@ -259,6 +321,24 @@ def test_publish_detects_short_write(
     assert dataset_path.read_text() == "old-dataset\n"
     assert manifest_path.read_text() == "old-manifest\n"
     assert not list(out_dir.glob("*.tmp-*"))
+
+
+def test_publish_atomic_refuses_preexisting_symlink(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(os, "getpid", lambda: 4242)
+
+    target = tmp_path / "out.json"
+    sentinel = tmp_path / "sentinel.txt"
+    sentinel.write_text("do not touch\n")
+    tmp = tmp_path / "out.json.tmp-4242"
+    tmp.symlink_to(sentinel)
+
+    with pytest.raises(OSError):
+        scan._publish_atomic({target: "new-data\n"})
+
+    assert sentinel.read_text() == "do not touch\n"
+    assert not target.exists()
 
 
 def test_committed_dataset_rederives_from_raw() -> None:
