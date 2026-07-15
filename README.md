@@ -27,7 +27,10 @@ the dataset re-derives byte-identically from the raw handshake results. See
 METHODOLOGY.md for the full specification and caveats.
 
 Cross-checked independently with OpenSSL 3.6 (`openssl s_client -groups
-X25519MLKEM768`), which agrees with the probe on the negotiated group.
+X25519MLKEM768`): when it also negotiates the group on a host the probe
+called `supported`, that confirms the `supported` signal from a second,
+unrelated TLS stack. It offers only the PQC group, so it does not
+reproduce the probe's classical-selection path.
 
 ## Usage
 

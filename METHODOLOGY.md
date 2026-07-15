@@ -8,7 +8,7 @@ the README is unclear, this document is the tiebreaker.
 
 Whether a host, over a real TLS 1.3 handshake, negotiates
 `X25519MLKEM768` — TLS Supported Groups id 4588 (`0x11EC`), a hybrid of
-X25519 and ML-KEM-768, defined by draft-kwiatkowski-tls-ecdhe-mlkem and
+X25519 and ML-KEM-768, defined by draft-ietf-tls-ecdhe-mlkem and
 registered in the IANA TLS Supported Groups registry.
 
 Nothing is inferred from cipher lists, ALPN, or server banners. The only
@@ -41,8 +41,14 @@ if a target list were to point at one by mistake.
 
 The probe's source (`probe.go` and `go.mod`) is pinned by SHA-256 in
 `probe/source.sha256`. `verify_probe_source()` recomputes that hash before
-every scan and aborts if it does not match, so a scan only ever runs
-reviewed, committed code.
+every scan and aborts if it does not match. This catches accidental or
+unreviewed drift of the probe source against what the repository last
+pinned. It is not a commit or identity binding: `probe/source.sha256` is a
+checked-in file sitting next to the source it pins, so anyone editing
+`probe.go` can regenerate the pin alongside it. By itself, a matching pin
+does not prove the running probe is reviewed code — that assurance comes
+from code review at merge time and from git history, not from the pin
+check.
 
 Before touching a single real host, the probe runs an in-memory self-test:
 an in-process TLS 1.3 handshake, over a `net.Pipe`, against a server
@@ -103,7 +109,10 @@ without having to re-run anything.
 Every sample records the TCP peer's resolved IP address. The host-level
 entry reports `distinct_peer_ips` and two flags:
 
-- `single_vantage`: all samples hit the same IP (one distinct address).
+- `single_vantage`: every sample that reached a peer reached the same IP —
+  exactly one distinct peer address across the host's samples. A host that
+  reached no peer at all (every sample errored before a peer address was
+  recorded) has zero distinct addresses and is not flagged `single_vantage`.
 - `divergent`: at least one sample was `supported` and at least one was
   `not_observed`, i.e. verdict-level disagreement, not just IP-level
   variation.
@@ -205,9 +214,13 @@ confirm the Go probe's result on a host:
 openssl s_client -groups X25519MLKEM768 -tls1_3 -servername HOST -connect HOST:443
 ```
 
-Agreement between the Go probe and OpenSSL on the negotiated group is the
-two-independent-methods confidence check: two unrelated TLS stacks reading
-the same ServerHello the same way.
+The Go probe offers `{X25519MLKEM768, X25519}`; this OpenSSL command offers
+only `X25519MLKEM768`, so it cannot reproduce the probe's classical-selection
+path. Its role is narrower: when it also negotiates the PQC group on a host
+the probe called `supported`, that is confirmation from a second, unrelated
+TLS stack that the group really is on offer and selectable there — the
+two-independent-methods check on the `supported` signal specifically, not a
+parallel re-implementation of the probe's full verdict logic.
 
 ## Provenance and signing
 
