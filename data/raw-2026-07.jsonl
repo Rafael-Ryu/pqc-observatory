@@ -1,20 +1,100 @@
-{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.87.170.74", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.11.118", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.132.229", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "tls_version": 772}
-{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.172.165", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.30.238", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.12.174", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "157.240.12.13", "tls_version": 772}
-{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "tls_version": 0}
-{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "tls_version": 772}
-{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "54.237.226.164", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.10.47", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.156.119", "tls_version": 772}
-{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "142.250.219.206", "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.82.161.185", "sample_index": 0, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.87.170.74", "sample_index": 1, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.82.161.185", "sample_index": 2, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.82.161.185", "sample_index": 3, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "peer_ip": "98.87.170.74", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "peer_ip": "17.253.144.10", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.10.118", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.10.118", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.11.118", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.10.118", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "peer_ip": "104.18.11.118", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.133.229", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.133.229", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.132.229", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.132.229", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "peer_ip": "104.16.132.229", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "peer_ip": "191.235.123.80", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "peer_ip": "157.240.12.35", "sample_index": 4, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "sample_index": 0, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "sample_index": 1, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "sample_index": 2, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "sample_index": 3, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "peer_ip": "4.228.31.150", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "peer_ip": "172.65.251.78", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.172.165", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.162.5", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.162.5", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.162.5", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "peer_ip": "172.217.162.5", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.162.174", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.162.174", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.162.174", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.162.174", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "peer_ip": "172.217.162.174", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.12.174", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.226.174", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.226.174", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.226.174", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "peer_ip": "157.240.226.174", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "57.144.232.141", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "157.240.12.13", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "157.240.12.13", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "157.240.12.13", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "peer_ip": "157.240.12.13", "sample_index": 4, "tls_version": 772}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "sample_index": 0, "tls_version": 0}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "sample_index": 1, "tls_version": 0}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "sample_index": 2, "tls_version": 0}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "sample_index": 3, "tls_version": 0}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "sample_index": 4, "tls_version": 0}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "sample_index": 0, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "sample_index": 1, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "sample_index": 2, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "sample_index": 3, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "peer_ip": "35.190.14.201", "sample_index": 4, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "3.225.92.8", "sample_index": 0, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "3.211.157.115", "sample_index": 1, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "54.160.93.182", "sample_index": 2, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "3.225.92.8", "sample_index": 3, "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "peer_ip": "54.160.93.182", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "peer_ip": "185.70.42.12", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.11.47", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.11.47", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.10.47", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.10.47", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "peer_ip": "104.18.11.47", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "peer_ip": "195.200.68.224", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.154.119", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.153.119", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.153.119", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.154.119", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "peer_ip": "142.251.155.119", "sample_index": 4, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "172.217.162.14", "sample_index": 0, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "172.217.162.14", "sample_index": 1, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "172.217.162.14", "sample_index": 2, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "172.217.162.14", "sample_index": 3, "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "peer_ip": "172.217.162.14", "sample_index": 4, "tls_version": 772}
