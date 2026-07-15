@@ -6,152 +6,295 @@
   },
   "entries": [
     {
-      "detail": "negotiated X25519",
-      "group": "X25519",
-      "group_id": 29,
+      "detail": "unanimous classical across 5 samples",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 5,
+        "supported": 0,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "amazon.com",
+      "samples": 5,
       "verdict": "not_observed"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "apple.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "cloudflare-ech.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "cloudflare.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "duckduckgo.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "facebook.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519",
-      "group": "X25519",
-      "group_id": 29,
+      "detail": "unanimous classical across 5 samples",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 5,
+        "supported": 0,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "github.com",
+      "samples": 5,
       "verdict": "not_observed"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "gitlab.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "gmail.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "google.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "instagram.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "meta.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
       "detail": "remote error: tls: handshake failure",
-      "group": "",
-      "group_id": 0,
+      "distinct_peer_ips": 0,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 0,
+        "unknown": 5
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "microsoft.com",
+      "samples": 5,
       "verdict": "unknown"
     },
     {
-      "detail": "negotiated X25519",
-      "group": "X25519",
-      "group_id": 29,
+      "detail": "unanimous classical across 5 samples",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 5,
+        "supported": 0,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "mozilla.org",
+      "samples": 5,
       "verdict": "not_observed"
     },
     {
-      "detail": "negotiated X25519",
-      "group": "X25519",
-      "group_id": 29,
+      "detail": "unanimous classical across 5 samples",
+      "distinct_peer_ips": 3,
+      "distribution": {
+        "not_observed": 5,
+        "supported": 0,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "netflix.com",
+      "samples": 5,
       "verdict": "not_observed"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "protonmail.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
+      "distinct_peer_ips": 2,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "signal.org",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "wikipedia.org",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 3 peer ip(s)",
+      "distinct_peer_ips": 3,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [],
       "host": "www.google.com",
+      "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "negotiated X25519MLKEM768",
-      "group": "X25519MLKEM768",
-      "group_id": 4588,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
+      "distribution": {
+        "not_observed": 0,
+        "supported": 5,
+        "unknown": 0
+      },
+      "flags": [
+        "single_vantage"
+      ],
       "host": "youtube.com",
+      "samples": 5,
       "verdict": "supported"
     }
   ],
-  "methodology_version": "m0-2026-07",
+  "methodology_version": "m2-2026-07",
   "pqc_group": {
     "id": 4588,
     "name": "X25519MLKEM768"
   },
   "run_date": "2026-07",
+  "samples_per_host": 5,
   "targets_sha256": "e5d244bb783ae61f836a81452299fe82e46a8048be67c0c9841f64532f9653ac",
   "total": 20
 }
