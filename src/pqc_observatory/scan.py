@@ -16,10 +16,36 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROBE_DIR = _REPO_ROOT / "probe"
 
 
+def _probe_source_sha256() -> str:
+    # Hashes the per-file digests in a fixed order so the pin is a stable
+    # function of the two source files' exact committed bytes (LF, as the
+    # repo stores them), independent of filesystem iteration order.
+    h = hashlib.sha256()
+    for name in ("probe.go", "go.mod"):
+        h.update(hashlib.sha256((_PROBE_DIR / name).read_bytes()).digest())
+    return h.hexdigest()
+
+
+def verify_probe_source() -> str:
+    """Compare the probe source against the committed pin before anything is
+    built or run, so a tampered or unexpectedly changed probe aborts the scan
+    instead of producing raw evidence from code nobody reviewed."""
+    expected = (_PROBE_DIR / "source.sha256").read_text().strip()
+    actual = _probe_source_sha256()
+    if actual != expected:
+        raise ValueError(
+            f"probe source does not match probe/source.sha256: "
+            f"expected {expected}, got {actual}. If probe.go/go.mod changed "
+            f"legitimately, regenerate probe/source.sha256."
+        )
+    return actual
+
+
 def build_probe(out: Path) -> Path:
-    """Compile the Go probe. ponytail: build-then-run for now; SHA-256 pinning
-    of a released binary (per the pqcheck pattern) lands with the first signed
-    dataset, not the M0 spike."""
+    """Compile the Go probe. Integrity is anchored at the source, not the
+    binary: `verify_probe_source` checks probe.go/go.mod against the committed
+    pin before this runs, so a build here reflects reviewed source. A locally
+    built binary's own hash is self-referential and is deliberately not pinned."""
     out.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         ["go", "build", "-o", str(out), "."],
@@ -135,6 +161,7 @@ def _publish_atomic(artifacts: dict[Path, str]) -> None:
 
 
 def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
+    probe_source_sha = verify_probe_source()
     hosts, sha = load_targets(targets_path)
     binary = build_probe(_REPO_ROOT / "build" / "probe")
     results = reconcile(hosts, run_probe(binary, hosts))
@@ -155,6 +182,7 @@ def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
         "dataset_sha256": dataset_sha,
         "raw_sha256": raw_sha,
         "targets_sha256": sha,
+        "probe_source_sha256": probe_source_sha,
         **_provenance(),
     }
     manifest_text = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
