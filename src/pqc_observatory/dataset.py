@@ -30,6 +30,7 @@ class ProbeResult(TypedDict, total=False):
     group: str
     group_id: int
     tls_version: int
+    peer_ip: str
     error: str
 
 
@@ -53,9 +54,12 @@ def classify(result: ProbeResult) -> Verdict:
     if not isinstance(group_id, int) or isinstance(group_id, bool):
         return "unknown"
     if group_id == PQC_GROUP_ID:
-        # An impossible record (PQC group without a TLS 1.3 handshake) means the
-        # probe output cannot be trusted for this host.
+        # An internally inconsistent record (PQC group id without a TLS 1.3
+        # handshake, or with a mismatched group name) means the probe output
+        # cannot be trusted for this host.
         if result.get("tls_version") != TLS13_VERSION:
+            return "unknown"
+        if result.get("group") != PQC_GROUP_NAME:
             return "unknown"
         return "supported"
     if group_id == 0:
@@ -75,10 +79,12 @@ def build_dataset(
     *,
     run_date: str,
     targets_sha256: str,
-    provenance: dict[str, str],
 ) -> dict[str, object]:
-    """Deterministic: same raw results + same inputs → byte-identical JSON
-    (callers dump with sort_keys=True). Entries are sorted by host."""
+    """The canonical dataset is a deterministic projection of the raw results
+    and stable methodology inputs only: same raw + same inputs → byte-identical
+    JSON (callers dump with sort_keys=True), independent of who or what machine
+    re-derives it. Environment provenance is recorded separately, not here, so
+    it cannot break third-party reproduction. Entries are sorted by host."""
     entries: list[Entry] = [
         {
             "host": r["host"],
@@ -97,7 +103,6 @@ def build_dataset(
         "run_date": run_date,
         "pqc_group": {"name": PQC_GROUP_NAME, "id": PQC_GROUP_ID},
         "targets_sha256": targets_sha256,
-        "provenance": provenance,
         "total": len(entries),
         "counts": counts,
         "entries": entries,
