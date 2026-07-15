@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import cast
@@ -127,6 +128,101 @@ def test_scan_writes_raw_and_dataset(
     assert manifest["dataset_sha256"] == hashlib.sha256(
         dataset_path.read_bytes()
     ).hexdigest()
+
+
+def _monkeypatch_probe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Shared fake probe pipeline so publish tests exercise scan()'s write
+    tail without a real Go build or network handshake."""
+    fake_results = [
+        _sample("b.example", i, group_id=29, group="X25519", tls_version=772)
+        for i in range(SAMPLES_PER_HOST)
+    ] + [
+        _sample("a.example", i, group_id=4588, group="X25519MLKEM768", tls_version=772)
+        for i in range(SAMPLES_PER_HOST)
+    ]
+    monkeypatch.setattr(scan, "build_probe", lambda out: out)
+    monkeypatch.setattr(scan, "run_probe", lambda binary, hosts: fake_results)
+    monkeypatch.setattr(scan, "_provenance", lambda: {"go_version": "t", "godebug": ""})
+
+
+def test_publish_is_atomic_on_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    targets = tmp_path / "t.txt"
+    targets.write_text("b.example\na.example\n")
+    _monkeypatch_probe(monkeypatch)
+
+    out_dir = tmp_path / "data"
+    out_dir.mkdir()
+    raw_path = out_dir / "raw-2026-07.jsonl"
+    dataset_path = out_dir / "pqc-adoption-2026-07.json"
+    manifest_path = out_dir / "manifest-2026-07.json"
+    raw_path.write_text("old-raw\n")
+    dataset_path.write_text("old-dataset\n")
+    manifest_path.write_text("old-manifest\n")
+
+    real_replace = os.replace
+    calls = {"n": 0}
+
+    def flaky_replace(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> None:
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated failure mid-publish")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", flaky_replace)
+
+    with pytest.raises(OSError, match="simulated failure"):
+        scan.scan(targets, out_dir, run_date="2026-07")
+
+    # The file whose replace never ran, or ran after the failure, must be
+    # left exactly as published before this run — a torn set is detectable
+    # (per the manifest shas) but never silently corrupted.
+    assert dataset_path.read_text() == "old-dataset\n"
+    assert manifest_path.read_text() == "old-manifest\n"
+    assert not list(out_dir.glob("*.tmp-*"))
+
+
+def test_publish_detects_short_write(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    targets = tmp_path / "t.txt"
+    targets.write_text("b.example\na.example\n")
+    _monkeypatch_probe(monkeypatch)
+
+    out_dir = tmp_path / "data"
+    out_dir.mkdir()
+    raw_path = out_dir / "raw-2026-07.jsonl"
+    dataset_path = out_dir / "pqc-adoption-2026-07.json"
+    manifest_path = out_dir / "manifest-2026-07.json"
+    raw_path.write_text("old-raw\n")
+    dataset_path.write_text("old-dataset\n")
+    manifest_path.write_text("old-manifest\n")
+
+    real_read_bytes = Path.read_bytes
+
+    def corrupting_read_bytes(self: Path) -> bytes:
+        data = real_read_bytes(self)
+        # Only tamper with the staged temp files, so load_targets() upstream
+        # still reads the real target list untouched.
+        return data + b"corrupt" if ".tmp-" in self.name else data
+
+    monkeypatch.setattr(Path, "read_bytes", corrupting_read_bytes)
+
+    def forbidden_replace(
+        src: str | os.PathLike[str], dst: str | os.PathLike[str]
+    ) -> None:
+        raise AssertionError("os.replace must not run once a temp write is torn")
+
+    monkeypatch.setattr(os, "replace", forbidden_replace)
+
+    with pytest.raises(OSError, match="sha mismatch"):
+        scan.scan(targets, out_dir, run_date="2026-07")
+
+    assert raw_path.read_text() == "old-raw\n"
+    assert dataset_path.read_text() == "old-dataset\n"
+    assert manifest_path.read_text() == "old-manifest\n"
+    assert not list(out_dir.glob("*.tmp-*"))
 
 
 def test_committed_dataset_rederives_from_raw() -> None:
