@@ -6,8 +6,6 @@ from pqc_observatory.dataset import (
     classify,
 )
 
-_PROV = {"go_version": "go version test", "godebug": ""}
-
 
 def _supported(host: str = "a") -> ProbeResult:
     return {
@@ -44,6 +42,16 @@ def test_non_int_group_id_is_unknown() -> None:
     assert classify(bad) == "unknown"
 
 
+def test_inconsistent_group_name_and_id_is_unknown() -> None:
+    bad: ProbeResult = {
+        "host": "a",
+        "group_id": PQC_GROUP_ID,
+        "group": "X25519",
+        "tls_version": TLS13_VERSION,
+    }
+    assert classify(bad) == "unknown"
+
+
 def test_classical_group_is_not_observed() -> None:
     assert classify(_classical()) == "not_observed"
 
@@ -64,15 +72,8 @@ def test_dataset_is_deterministic_and_sorted() -> None:
         _supported("a.example"),
         {"host": "c.example", "error": "timeout"},
     ]
-    d1 = build_dataset(
-        results, run_date="2026-07", targets_sha256="x", provenance=_PROV
-    )
-    d2 = build_dataset(
-        list(reversed(results)),
-        run_date="2026-07",
-        targets_sha256="x",
-        provenance=_PROV,
-    )
+    d1 = build_dataset(results, run_date="2026-07", targets_sha256="x")
+    d2 = build_dataset(list(reversed(results)), run_date="2026-07", targets_sha256="x")
     assert d1 == d2
     entries = d1["entries"]
     assert isinstance(entries, list)

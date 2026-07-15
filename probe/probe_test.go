@@ -2,11 +2,35 @@ package main
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+func TestIsPublicIP(t *testing.T) {
+	public := []string{"1.1.1.1", "8.8.8.8", "2606:4700:4700::1111"}
+	private := []string{
+		"127.0.0.1", "10.0.0.1", "192.168.1.1", "169.254.1.1",
+		"100.64.0.1", "100.127.255.255", // CGNAT
+		"::1", "fc00::1", "fe80::1", "ff02::1", "::", "0.0.0.0",
+		"::ffff:10.0.0.1", // IPv4-mapped private
+	}
+	for _, s := range public {
+		if !isPublicIP(net.ParseIP(s)) {
+			t.Errorf("%s should be public", s)
+		}
+	}
+	for _, s := range private {
+		if isPublicIP(net.ParseIP(s)) {
+			t.Errorf("%s should be rejected", s)
+		}
+	}
+	if isPublicIP(nil) {
+		t.Error("nil should be rejected")
+	}
+}
 
 func TestGroupName(t *testing.T) {
 	cases := map[tls.CurveID]string{4588: "X25519MLKEM768", 29: "X25519", 0: ""}
