@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -38,11 +39,26 @@ func groupName(id tls.CurveID) string {
 	}
 }
 
+// isPublicIP reports whether ip is a globally routable unicast address. It
+// rejects every special-use range that could point the probe at non-public
+// infrastructure, including CGNAT (100.64.0.0/10), which Go's IsPrivate misses.
+func isPublicIP(ip net.IP) bool {
+	if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() {
+		return false
+	}
+	if v4 := ip.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+		return false
+	}
+	return true
+}
+
 type result struct {
 	Host       string `json:"host"`
 	Group      string `json:"group"`       // negotiated group name, "" on error
 	GroupID    uint16 `json:"group_id"`    // negotiated group id, 0 on error
 	TLSVersion uint16 `json:"tls_version"` // 0 on error
+	PeerIP     string `json:"peer_ip,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
@@ -53,7 +69,20 @@ func probe(host string, timeout time.Duration) result {
 	defer cancel()
 
 	dialer := &tls.Dialer{
-		NetDialer: &net.Dialer{},
+		NetDialer: &net.Dialer{
+			// Reject non-public peers after DNS resolution but before the socket
+			// connects, so private infrastructure is never handshaked at all.
+			Control: func(_, address string, _ syscall.RawConn) error {
+				host, _, err := net.SplitHostPort(address)
+				if err != nil {
+					return err
+				}
+				if ip := net.ParseIP(host); ip == nil || !isPublicIP(ip) {
+					return fmt.Errorf("non-public address: %s", host)
+				}
+				return nil
+			},
+		},
 		Config: &tls.Config{
 			MinVersion:       tls.VersionTLS13,
 			MaxVersion:       tls.VersionTLS13,
@@ -73,14 +102,8 @@ func probe(host string, timeout time.Duration) result {
 	}
 	defer conn.Close()
 
-	// Public endpoints only: reject a peer that resolved to a private, loopback,
-	// or link-local address so the dataset can never attribute a result to
-	// internal infrastructure.
 	if tcp, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
-		if ip := tcp.IP; ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
-			r.Error = "non-public address: " + ip.String()
-			return r
-		}
+		r.PeerIP = tcp.IP.String()
 	}
 
 	state := conn.(*tls.Conn).ConnectionState()
