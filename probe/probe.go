@@ -9,15 +9,18 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"sync"
 	"time"
 )
 
-// Groups we offer. X25519MLKEM768 first so a capable server picks it; X25519
-// as fallback so a non-capable server still completes the handshake and we can
-// record what it chose (rather than seeing a handshake failure = unknown).
+// Groups we enable. Go ignores the order of this list and applies its own
+// internal preference, so this is a set, not a ranking: the server selects one
+// of these from the ClientHello. Enabling X25519 alongside the PQC group lets a
+// non-PQC server still complete the handshake, so we observe its choice instead
+// of a bare handshake failure.
 var offered = []tls.CurveID{tls.X25519MLKEM768, tls.X25519}
 
 func groupName(id tls.CurveID) string {
@@ -56,10 +59,10 @@ func probe(host string, timeout time.Duration) result {
 			MaxVersion:       tls.VersionTLS13,
 			CurvePreferences: offered,
 			ServerName:       hostname(host),
-			// We measure the negotiated group, chosen in ServerHello before cert
-			// validation matters. Skipping verification keeps endpoints with cert
-			// issues measurable instead of collapsing them to unknown.
-			InsecureSkipVerify: true,
+			// Certificate identity is verified against ServerName. A verdict is
+			// only meaningful if the PQC exchange happened with the named
+			// endpoint, not with a MITM, captive portal, or misrouted vhost, so
+			// a certificate failure must collapse to unknown, not a false result.
 		},
 	}
 
@@ -69,6 +72,16 @@ func probe(host string, timeout time.Duration) result {
 		return r
 	}
 	defer conn.Close()
+
+	// Public endpoints only: reject a peer that resolved to a private, loopback,
+	// or link-local address so the dataset can never attribute a result to
+	// internal infrastructure.
+	if tcp, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+		if ip := tcp.IP; ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+			r.Error = "non-public address: " + ip.String()
+			return r
+		}
+	}
 
 	state := conn.(*tls.Conn).ConnectionState()
 	r.Group = groupName(state.CurveID)
@@ -126,6 +139,12 @@ func main() {
 
 	enc := json.NewEncoder(os.Stdout)
 	for r := range results {
-		enc.Encode(r)
+		if err := enc.Encode(r); err != nil {
+			// A lost line would silently drop a host from the dataset; fail loud
+			// so the caller (which reconciles host counts) treats the run as
+			// broken rather than publishing incomplete results.
+			fmt.Fprintln(os.Stderr, "probe: encode:", err)
+			os.Exit(1)
+		}
 	}
 }
