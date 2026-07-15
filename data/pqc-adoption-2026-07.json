@@ -7,7 +7,7 @@
   "entries": [
     {
       "detail": "unanimous classical across 5 samples",
-      "distinct_peer_ips": 2,
+      "distinct_peer_ips": 3,
       "distribution": {
         "not_observed": 5,
         "supported": 0,
@@ -120,14 +120,16 @@
       "verdict": "supported"
     },
     {
-      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
-      "distinct_peer_ips": 2,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
       "distribution": {
         "not_observed": 0,
         "supported": 5,
         "unknown": 0
       },
-      "flags": [],
+      "flags": [
+        "single_vantage"
+      ],
       "host": "gmail.com",
       "samples": 5,
       "verdict": "supported"
@@ -148,27 +150,31 @@
       "verdict": "supported"
     },
     {
-      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
-      "distinct_peer_ips": 2,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
       "distribution": {
         "not_observed": 0,
         "supported": 5,
         "unknown": 0
       },
-      "flags": [],
+      "flags": [
+        "single_vantage"
+      ],
       "host": "instagram.com",
       "samples": 5,
       "verdict": "supported"
     },
     {
-      "detail": "unanimous X25519MLKEM768 across 5 samples, 2 peer ip(s)",
-      "distinct_peer_ips": 2,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 1 peer ip(s)",
+      "distinct_peer_ips": 1,
       "distribution": {
         "not_observed": 0,
         "supported": 5,
         "unknown": 0
       },
-      "flags": [],
+      "flags": [
+        "single_vantage"
+      ],
       "host": "meta.com",
       "samples": 5,
       "verdict": "supported"
@@ -181,9 +187,7 @@
         "supported": 0,
         "unknown": 5
       },
-      "flags": [
-        "single_vantage"
-      ],
+      "flags": [],
       "host": "microsoft.com",
       "samples": 5,
       "verdict": "unknown"
@@ -205,7 +209,7 @@
     },
     {
       "detail": "unanimous classical across 5 samples",
-      "distinct_peer_ips": 3,
+      "distinct_peer_ips": 2,
       "distribution": {
         "not_observed": 5,
         "supported": 0,
@@ -260,8 +264,8 @@
       "verdict": "supported"
     },
     {
-      "detail": "unanimous X25519MLKEM768 across 5 samples, 3 peer ip(s)",
-      "distinct_peer_ips": 3,
+      "detail": "unanimous X25519MLKEM768 across 5 samples, 4 peer ip(s)",
+      "distinct_peer_ips": 4,
       "distribution": {
         "not_observed": 0,
         "supported": 5,

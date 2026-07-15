@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Literal, TypedDict
 
 # Hybrid post-quantum key exchange we enable and confirm. id 4588 == 0x11EC,
-# defined by draft-kwiatkowski-tls-ecdhe-mlkem and registered in the IANA TLS
+# defined by draft-ietf-tls-ecdhe-mlkem and registered in the IANA TLS
 # Supported Groups registry. This is the only group whose negotiation we treat
 # as PQC support.
 PQC_GROUP_ID = 4588
@@ -60,14 +60,20 @@ def classify(result: ProbeResult) -> Verdict:
     # is not a plain int so a corrupted record (e.g. 4588.0) cannot pass.
     if not isinstance(group_id, int) or isinstance(group_id, bool):
         return "unknown"
+    # A supported AND a not_observed verdict both claim the server completed a
+    # TLS 1.3 handshake and negotiated the reported group; without that
+    # handshake the group id is meaningless (TLS 1.2 fallback) or the record
+    # is corrupted, so this guard applies before the PQC/classical split, not
+    # only to the PQC branch. Same type guard as group_id above: 772.0 ==
+    # TLS13_VERSION in Python, so a corrupted float must not pass.
+    tv = result.get("tls_version")
+    if not isinstance(tv, int) or isinstance(tv, bool) or tv != TLS13_VERSION:
+        return "unknown"
+    # A record carrying the PQC group name without its id is internally
+    # inconsistent and cannot be trusted for either verdict.
+    if result.get("group") == PQC_GROUP_NAME and group_id != PQC_GROUP_ID:
+        return "unknown"
     if group_id == PQC_GROUP_ID:
-        # An internally inconsistent record (PQC group id without a TLS 1.3
-        # handshake, or with a mismatched group name) means the probe output
-        # cannot be trusted for this host. Same type guard as group_id above:
-        # 772.0 == TLS13_VERSION in Python, so a corrupted float must not pass.
-        tv = result.get("tls_version")
-        if not isinstance(tv, int) or isinstance(tv, bool) or tv != TLS13_VERSION:
-            return "unknown"
         if result.get("group") != PQC_GROUP_NAME:
             return "unknown"
         return "supported"
@@ -109,7 +115,11 @@ def aggregate(host: str, samples: list[ProbeResult]) -> Entry:
     divergent = distribution["supported"] > 0 and distribution["not_observed"] > 0
 
     flags = []
-    if distinct_peer_ips <= 1:
+    if distinct_peer_ips == 1:
+        # Exactly one peer, not "at most one": a host that reached zero peers
+        # (every handshake failed) is already unknown with an empty
+        # distribution of peers, and single_vantage would misleadingly imply
+        # a peer was actually observed.
         flags.append("single_vantage")
     if divergent:
         flags.append("divergent")

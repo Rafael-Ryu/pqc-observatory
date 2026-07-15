@@ -108,6 +108,40 @@ def test_no_group_is_unknown() -> None:
     assert classify({"host": "a", "group_id": 0}) == "unknown"
 
 
+def test_classical_group_without_tls13_is_unknown() -> None:
+    # A corrupted classical record: not_observed must also require a
+    # completed TLS 1.3 handshake, not just a nonzero non-PQC group id.
+    bad: ProbeResult = {
+        "host": "a",
+        "group_id": 29,
+        "group": "X25519",
+        "tls_version": 0,
+    }
+    assert classify(bad) == "unknown"
+
+
+def test_classical_group_wrong_tls_version_is_unknown() -> None:
+    bad: ProbeResult = {
+        "host": "a",
+        "group_id": 29,
+        "group": "X25519",
+        "tls_version": 771,
+    }
+    assert classify(bad) == "unknown"
+
+
+def test_pqc_group_name_with_classical_id_is_unknown() -> None:
+    # Group name carries PQC meaning but the id disagrees: internally
+    # inconsistent, must not be reported as not_observed.
+    bad: ProbeResult = {
+        "host": "a",
+        "group_id": 29,
+        "group": "X25519MLKEM768",
+        "tls_version": TLS13_VERSION,
+    }
+    assert classify(bad) == "unknown"
+
+
 def _unanimous(
     host: str, make: Callable[[str, str], ProbeResult], peer_ip: str = "1.1.1.1"
 ) -> list[ProbeResult]:
@@ -158,6 +192,22 @@ def test_aggregate_unanimous_supported_single_vantage_still_supported() -> None:
     assert entry["verdict"] == "supported"
     assert entry["distinct_peer_ips"] == 1
     assert entry["flags"] == ["single_vantage"]
+
+
+def test_aggregate_zero_peers_no_single_vantage_flag() -> None:
+    # Every handshake failed (e.g. microsoft.com timing out): distinct_peer_ips
+    # is 0, not 1, and single_vantage would misleadingly imply a peer was
+    # actually reached. The verdict alone (unknown) already conveys the
+    # total failure.
+    samples = _samples(
+        *[
+            cast("ProbeResult", {"host": "a", "error": "timeout"})
+            for _ in range(SAMPLES_PER_HOST)
+        ]
+    )
+    entry = aggregate("a", samples)
+    assert entry["distinct_peer_ips"] == 0
+    assert "single_vantage" not in entry["flags"]
 
 
 def test_aggregate_divergent_mix_is_unknown() -> None:

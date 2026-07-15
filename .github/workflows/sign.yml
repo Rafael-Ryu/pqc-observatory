@@ -16,6 +16,7 @@ jobs:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - env:
           TAG: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -32,6 +33,76 @@ jobs:
             fi
           done
 
+          # The tag can be moved or deleted and recreated after the workflow was
+          # scheduled; refuse to sign unless it still points at the exact commit
+          # this run checked out.
+          tag_commit="$(git rev-list -n1 "$TAG")"
+          if [ "$tag_commit" != "$GITHUB_SHA" ]; then
+            echo "tag $TAG resolves to $tag_commit, not the checked-out commit $GITHUB_SHA; refusing to sign" >&2
+            exit 1
+          fi
+
+          # Gate signing on the manifest's own provenance claims, not just its
+          # presence: every hash it asserts must match the artifact it names, and
+          # the probe source pin must match what the repo commits. Paths are
+          # passed through the environment and the heredoc is quoted, so the shell
+          # never interpolates into the Python source.
+          MANIFEST="$manifest" DATASET="$dataset" RAW="$raw" TAG_DATE="$date" python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          manifest = json.loads(Path(os.environ["MANIFEST"]).read_text())
+
+          required = (
+              "probe_source_sha256",
+              "dataset_sha256",
+              "raw_sha256",
+              "targets_sha256",
+              "run_date",
+          )
+          missing = [k for k in required if k not in manifest]
+          if missing:
+              sys.exit(f"manifest missing required field(s): {missing}")
+
+          if manifest["run_date"] != os.environ["TAG_DATE"]:
+              sys.exit(
+                  f"manifest run_date {manifest['run_date']!r} does not match "
+                  f"tag date {os.environ['TAG_DATE']!r}"
+              )
+
+          def sha256_file(path: str) -> str:
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          for field, env in (("dataset_sha256", "DATASET"), ("raw_sha256", "RAW")):
+              actual = sha256_file(os.environ[env])
+              if manifest[field] != actual:
+                  sys.exit(
+                      f"manifest {field} {manifest[field]!r} does not match "
+                      f"actual sha256 ({actual!r})"
+                  )
+
+          pinned = Path("probe/source.sha256").read_text().strip()
+          h = hashlib.sha256()
+          h.update(hashlib.sha256(Path("probe/probe.go").read_bytes()).digest())
+          h.update(hashlib.sha256(Path("probe/go.mod").read_bytes()).digest())
+          recomputed = h.hexdigest()
+          if recomputed != pinned:
+              sys.exit(
+                  f"recomputed probe source hash {recomputed!r} does not match "
+                  f"probe/source.sha256 ({pinned!r})"
+              )
+          if manifest["probe_source_sha256"] != pinned:
+              sys.exit(
+                  f"manifest probe_source_sha256 {manifest['probe_source_sha256']!r} "
+                  f"does not match probe/source.sha256 ({pinned!r})"
+              )
+
+          print("provenance check passed")
+          PY
+
           cosign sign-blob "$manifest" --bundle "${manifest}.sigstore" --yes
 
           cosign verify-blob "$manifest" \
@@ -40,6 +111,7 @@ jobs:
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
           gh release create "$TAG" \
+            --verify-tag \
             --title "PQC adoption dataset ${date}" \
             --notes "Signed with Sigstore keyless; see METHODOLOGY.md to verify." \
             "$manifest" "${manifest}.sigstore" "$dataset" "$raw"
