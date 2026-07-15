@@ -151,10 +151,6 @@
     "id": 4588,
     "name": "X25519MLKEM768"
   },
-  "provenance": {
-    "go_version": "go version go1.26.5-X:nodwarf5 linux/amd64",
-    "godebug": ""
-  },
   "run_date": "2026-07",
   "targets_sha256": "e5d244bb783ae61f836a81452299fe82e46a8048be67c0c9841f64532f9653ac",
   "total": 20
