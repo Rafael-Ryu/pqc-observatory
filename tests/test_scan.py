@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -74,9 +75,7 @@ def test_scan_writes_raw_and_dataset(
         },
     ]
     monkeypatch.setattr(scan, "run_probe", lambda binary, hosts: fake_results)
-    monkeypatch.setattr(
-        scan, "_provenance", lambda binary: {"go_version": "t", "godebug": ""}
-    )
+    monkeypatch.setattr(scan, "_provenance", lambda: {"go_version": "t", "godebug": ""})
 
     out_dir = tmp_path / "data"
     dataset_path = scan.scan(targets, out_dir, run_date="2026-07")
@@ -84,29 +83,38 @@ def test_scan_writes_raw_and_dataset(
     data = json.loads(dataset_path.read_text())
     assert data["counts"] == {"supported": 1, "not_observed": 1, "unknown": 0}
     assert [e["host"] for e in data["entries"]] == ["a.example", "b.example"]
+    assert "provenance" not in data  # provenance lives in the sidecar, not here
     raw_lines = (out_dir / "raw-2026-07.jsonl").read_text().splitlines()
     assert json.loads(raw_lines[0])["host"] == "a.example"
+
+    manifest = json.loads((out_dir / "manifest-2026-07.json").read_text())
+    assert manifest["go_version"] == "t"
+    assert manifest["dataset_sha256"] == hashlib.sha256(
+        dataset_path.read_bytes()
+    ).hexdigest()
 
 
 def test_committed_dataset_rederives_from_raw() -> None:
     """Gate: the published dataset must re-derive byte-identically from its raw
-    results, so a hand-edited or stale dataset fails CI."""
+    results and the pinned target file alone — no environment input — so a
+    hand-edited or stale dataset fails CI and third-party reproduction holds.
+    The target hash is recomputed from the file, not trusted from the dataset."""
     data_dir = _REPO_ROOT / "data"
     dataset_path = next(data_dir.glob("pqc-adoption-*.json"))
     dataset = json.loads(dataset_path.read_text())
-    raw_path = data_dir / f"raw-{dataset['run_date']}.jsonl"
+    run_date = dataset["run_date"]
+
+    raw_path = data_dir / f"raw-{run_date}.jsonl"
     raw = [
         json.loads(line)
         for line in raw_path.read_text().splitlines()
         if line.strip()
     ]
+    targets_file = _REPO_ROOT / "targets" / f"{run_date}.txt"
+    targets_sha = hashlib.sha256(targets_file.read_bytes()).hexdigest()
+    assert targets_sha == dataset["targets_sha256"]
 
-    rebuilt = build_dataset(
-        raw,
-        run_date=dataset["run_date"],
-        targets_sha256=dataset["targets_sha256"],
-        provenance=dataset["provenance"],
-    )
+    rebuilt = build_dataset(raw, run_date=run_date, targets_sha256=targets_sha)
     expected = json.dumps(dataset, indent=2, sort_keys=True) + "\n"
     actual = json.dumps(rebuilt, indent=2, sort_keys=True) + "\n"
     assert actual == expected
