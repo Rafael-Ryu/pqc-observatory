@@ -1,0 +1,45 @@
+name: sign-dataset
+
+on:
+  push:
+    tags: ['data-*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          date="${TAG#data-}"
+          manifest="data/manifest-${date}.json"
+          dataset="data/pqc-adoption-${date}.json"
+          raw="data/raw-${date}.jsonl"
+
+          for f in "$manifest" "$dataset" "$raw"; do
+            if [ ! -f "$f" ]; then
+              echo "missing $f for tag $TAG, refusing to publish an empty release" >&2
+              exit 1
+            fi
+          done
+
+          cosign sign-blob "$manifest" --bundle "${manifest}.sigstore" --yes
+
+          cosign verify-blob "$manifest" \
+            --bundle "${manifest}.sigstore" \
+            --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/sign.yml@${GITHUB_REF}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+          gh release create "$TAG" \
+            --title "PQC adoption dataset ${date}" \
+            --notes "Signed with Sigstore keyless; see METHODOLOGY.md to verify." \
+            "$manifest" "${manifest}.sigstore" "$dataset" "$raw"
