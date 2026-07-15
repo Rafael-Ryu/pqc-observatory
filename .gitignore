@@ -1,4 +1,3 @@
-# Local-only context (never publish) — per CLAUDE.md
 /.context/
 /CLAUDE.md
 /PLAN.md
@@ -16,6 +15,7 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.coverage
 
 # Env / secrets
 .env
