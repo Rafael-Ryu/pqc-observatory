@@ -49,10 +49,20 @@ and counts).
 - **Anything above the key exchange.** This says nothing about certificate
   signatures, session resumption, or application-layer behavior.
 
+The `supported` count is a **lower bound for this specific client and network
+path**, not a full adoption rate. The probe sends a large ML-KEM ClientHello
+over a TLS-1.3-only, Go-shaped handshake and takes a single sample, so a server
+that is genuinely PQC-capable can still land in `unknown` or `not_observed`: a
+middlebox intolerant of large or TLS-1.3-only ClientHellos can drop the
+handshake, and an anycast host may answer from a classical edge on the one path
+sampled. A positive proves one supporting path; a negative does not
+characterize the whole host.
+
 ## Ethics
 
 Only public TLS handshakes against public endpoints, one handshake per host, no
 authentication and no scanning of private infrastructure — the same kind of
 capability measurement SSL Labs and Cloudflare Radar publish. A peer that
-resolves to a private, loopback, or link-local address is rejected rather than
-probed.
+resolves to a private, loopback, link-local, or carrier-grade-NAT address is
+rejected before the connection is made, so internal infrastructure is never
+handshaked.
