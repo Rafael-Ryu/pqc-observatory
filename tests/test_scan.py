@@ -89,6 +89,39 @@ def test_run_probe_parses_jsonl(monkeypatch: pytest.MonkeyPatch) -> None:
     assert captured["cmd"] == ["/probe", "-samples", str(SAMPLES_PER_HOST), "a", "b"]
 
 
+def test_probe_source_pin_matches_committed() -> None:
+    # Drift guard: fails the moment probe.go/go.mod change without the pin
+    # being regenerated, not just for one hand-picked tampering case.
+    pin = (_REPO_ROOT / "probe" / "source.sha256").read_text().strip()
+    assert scan._probe_source_sha256() == pin
+
+
+def test_verify_probe_source_rejects_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(scan, "_probe_source_sha256", lambda: "deadbeef")
+    with pytest.raises(ValueError, match="probe source does not match"):
+        scan.verify_probe_source()
+
+
+def test_scan_verifies_probe_before_building(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    targets = tmp_path / "t.txt"
+    targets.write_text("a.example\n")
+
+    def boom() -> str:
+        raise ValueError("probe source does not match probe/source.sha256")
+
+    def unreachable(*args: object, **kwargs: object) -> object:
+        raise AssertionError("must not be called once source verification fails")
+
+    monkeypatch.setattr(scan, "verify_probe_source", boom)
+    monkeypatch.setattr(scan, "build_probe", unreachable)
+    monkeypatch.setattr(scan, "run_probe", unreachable)
+
+    with pytest.raises(ValueError, match="probe source does not match"):
+        scan.scan(targets, tmp_path / "data", run_date="2026-07")
+
+
 def test_scan_writes_raw_and_dataset(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -105,6 +138,7 @@ def test_scan_writes_raw_and_dataset(
     ]
     monkeypatch.setattr(scan, "run_probe", lambda binary, hosts: fake_results)
     monkeypatch.setattr(scan, "_provenance", lambda: {"go_version": "t", "godebug": ""})
+    monkeypatch.setattr(scan, "verify_probe_source", lambda: "fixed-source-sha")
 
     out_dir = tmp_path / "data"
     dataset_path = scan.scan(targets, out_dir, run_date="2026-07")
@@ -125,6 +159,7 @@ def test_scan_writes_raw_and_dataset(
 
     manifest = json.loads((out_dir / "manifest-2026-07.json").read_text())
     assert manifest["go_version"] == "t"
+    assert manifest["probe_source_sha256"] == "fixed-source-sha"
     assert manifest["dataset_sha256"] == hashlib.sha256(
         dataset_path.read_bytes()
     ).hexdigest()
@@ -143,6 +178,7 @@ def _monkeypatch_probe(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(scan, "build_probe", lambda out: out)
     monkeypatch.setattr(scan, "run_probe", lambda binary, hosts: fake_results)
     monkeypatch.setattr(scan, "_provenance", lambda: {"go_version": "t", "godebug": ""})
+    monkeypatch.setattr(scan, "verify_probe_source", lambda: "fixed-source-sha")
 
 
 def test_publish_is_atomic_on_failure(
