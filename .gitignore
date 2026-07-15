@@ -1,0 +1,27 @@
+# Local-only context (never publish) — per CLAUDE.md
+/.context/
+/CLAUDE.md
+/PLAN.md
+/.claude/
+/docs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+/dist/
+/build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+.env.*
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
