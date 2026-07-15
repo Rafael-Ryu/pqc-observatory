@@ -1,14 +1,16 @@
 // Command probe performs a real TLS 1.3 handshake against each host, offering
 // the hybrid post-quantum key exchange X25519MLKEM768, and reports the group
 // the server actually negotiated in its ServerHello. It emits one JSON object
-// per host (JSONL) on stdout. The negotiated group is the only PQC signal we
-// trust: nothing is inferred from cipher lists, ALPN, or banners.
+// per sample (JSONL) on stdout, -samples independent samples per host. The
+// negotiated group is the only PQC signal we trust: nothing is inferred from
+// cipher lists, ALPN, or banners.
 package main
 
 import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -54,12 +56,13 @@ func isPublicIP(ip net.IP) bool {
 }
 
 type result struct {
-	Host       string `json:"host"`
-	Group      string `json:"group"`       // negotiated group name, "" on error
-	GroupID    uint16 `json:"group_id"`    // negotiated group id, 0 on error
-	TLSVersion uint16 `json:"tls_version"` // 0 on error
-	PeerIP     string `json:"peer_ip,omitempty"`
-	Error      string `json:"error,omitempty"`
+	Host        string `json:"host"`
+	SampleIndex int    `json:"sample_index"`
+	Group       string `json:"group"`       // negotiated group name, "" on error
+	GroupID     uint16 `json:"group_id"`    // negotiated group id, 0 on error
+	TLSVersion  uint16 `json:"tls_version"` // 0 on error
+	PeerIP      string `json:"peer_ip,omitempty"`
+	Error       string `json:"error,omitempty"`
 }
 
 func probe(host string, timeout time.Duration) result {
@@ -128,9 +131,15 @@ func withPort(host string) string {
 }
 
 func main() {
-	hosts := os.Args[1:]
+	samples := flag.Int("samples", 1, "independent samples per host")
+	spacing := flag.Duration("spacing", 750*time.Millisecond, "delay between samples of the same host")
+	flag.Parse()
+	hosts := flag.Args()
 	if len(hosts) == 0 {
 		os.Exit(0)
+	}
+	if *samples < 1 {
+		*samples = 1
 	}
 
 	const workers = 16
@@ -139,13 +148,24 @@ func main() {
 	jobs := make(chan string)
 	results := make(chan result)
 
+	// Job = host, not sample: a host's N samples run sequentially with spacing
+	// in between (each is a fresh DNS resolution and connection, so spacing
+	// avoids hammering one endpoint back-to-back), while the 16-worker pool
+	// still fans out across hosts for throughput.
 	var wg sync.WaitGroup
 	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for h := range jobs {
-				results <- probe(h, timeout)
+				for i := 0; i < *samples; i++ {
+					r := probe(h, timeout)
+					r.SampleIndex = i
+					results <- r
+					if i < *samples-1 {
+						time.Sleep(*spacing)
+					}
+				}
 			}
 		}()
 	}

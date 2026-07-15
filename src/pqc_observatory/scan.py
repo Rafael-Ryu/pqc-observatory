@@ -10,7 +10,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from .dataset import ProbeResult, build_dataset
+from .dataset import SAMPLES_PER_HOST, ProbeResult, build_dataset
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PROBE_DIR = _REPO_ROOT / "probe"
@@ -33,7 +33,7 @@ def run_probe(binary: Path, hosts: list[str]) -> list[ProbeResult]:
     if not hosts:
         return []
     proc = subprocess.run(
-        [str(binary), *hosts],
+        [str(binary), "-samples", str(SAMPLES_PER_HOST), *hosts],
         capture_output=True,
         text=True,
         check=True,
@@ -42,22 +42,33 @@ def run_probe(binary: Path, hosts: list[str]) -> list[ProbeResult]:
 
 
 def reconcile(hosts: list[str], results: list[ProbeResult]) -> list[ProbeResult]:
-    """Guarantee exactly one result per requested host. A host with no result
-    (probe crashed on it, emitted a short run, or was a wrong binary) becomes
-    `unknown` instead of silently vanishing; an unexpected or duplicate result
-    host is a broken contract and aborts the run."""
+    """Guarantee exactly SAMPLES_PER_HOST results per requested host, one per
+    sample_index. A missing (host, sample_index) slot (probe crashed mid-run,
+    dropped a line) becomes an `unknown` sample instead of silently vanishing
+    or crashing the whole run — a flaky sample must not cost the other N-1. An
+    unexpected host, or a duplicate/out-of-range sample_index, is a broken
+    contract and aborts the run."""
     requested = set(hosts)
-    by_host: dict[str, ProbeResult] = {}
+    n = SAMPLES_PER_HOST
+    by_key: dict[tuple[str, int], ProbeResult] = {}
     for r in results:
         h = r.get("host", "")
         if h not in requested:
             raise ValueError(f"probe returned an unrequested host: {h!r}")
-        if h in by_host:
-            raise ValueError(f"probe returned a duplicate result for: {h!r}")
-        by_host[h] = r
+        i = r.get("sample_index", -1)
+        if not isinstance(i, int) or not (0 <= i < n):
+            raise ValueError(
+                f"probe returned an out-of-range sample_index for {h!r}: {i!r}"
+            )
+        if (h, i) in by_key:
+            raise ValueError(f"probe returned a duplicate sample_index {i} for: {h!r}")
+        by_key[h, i] = r
     for h in hosts:
-        by_host.setdefault(h, {"host": h, "error": "no probe result"})
-    return [by_host[h] for h in hosts]
+        for i in range(n):
+            by_key.setdefault(
+                (h, i), {"host": h, "sample_index": i, "error": "no probe result"}
+            )
+    return [by_key[h, i] for h in hosts for i in range(n)]
 
 
 def load_targets(path: Path) -> tuple[list[str], str]:
@@ -102,13 +113,13 @@ def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
     results = reconcile(hosts, run_probe(binary, hosts))
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    ordered = sorted(results, key=lambda r: r["host"])
+    ordered = sorted(results, key=lambda r: (r["host"], r.get("sample_index", 0)))
     raw_sha = _write(
         out_dir / f"raw-{run_date}.jsonl",
         "".join(json.dumps(r, sort_keys=True) + "\n" for r in ordered),
     )
 
-    dataset = build_dataset(results, run_date=run_date, targets_sha256=sha)
+    dataset = build_dataset(results, hosts=hosts, run_date=run_date, targets_sha256=sha)
     dataset_path = out_dir / f"pqc-adoption-{run_date}.json"
     dataset_sha = _write(
         dataset_path, json.dumps(dataset, indent=2, sort_keys=True) + "\n"

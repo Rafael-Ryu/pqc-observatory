@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from pqc_observatory import scan
-from pqc_observatory.dataset import build_dataset
+from pqc_observatory.dataset import SAMPLES_PER_HOST, build_dataset
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,19 +26,40 @@ def test_load_targets_rejects_duplicates(tmp_path: Path) -> None:
         scan.load_targets(f)
 
 
-def test_reconcile_synthesizes_unknown_for_missing_host() -> None:
-    out = scan.reconcile(
-        ["a", "b"], [{"host": "a", "group_id": 4588, "tls_version": 772}]
-    )
-    assert [r["host"] for r in out] == ["a", "b"]
-    assert out[1] == {"host": "b", "error": "no probe result"}
+def _sample(host: str, i: int, **extra: object) -> dict[str, object]:
+    return {"host": host, "sample_index": i, **extra}
 
 
-def test_reconcile_rejects_unrequested_and_duplicate_hosts() -> None:
+def test_reconcile_synthesizes_missing_slots_up_to_samples_per_host() -> None:
+    # Host "a" is missing every sample but index 0; host "b" got none at all.
+    out = scan.reconcile(["a", "b"], [_sample("a", 0, group_id=4588, tls_version=772)])
+    assert len(out) == 2 * SAMPLES_PER_HOST
+    assert [(r["host"], r["sample_index"]) for r in out] == [
+        (h, i) for h in ("a", "b") for i in range(SAMPLES_PER_HOST)
+    ]
+    assert out[1] == {"host": "a", "sample_index": 1, "error": "no probe result"}
+    assert out[SAMPLES_PER_HOST] == {
+        "host": "b",
+        "sample_index": 0,
+        "error": "no probe result",
+    }
+
+
+def test_reconcile_rejects_unrequested_host() -> None:
     with pytest.raises(ValueError, match="unrequested"):
-        scan.reconcile(["a"], [{"host": "evil"}])
+        scan.reconcile(["a"], [_sample("evil", 0)])
+
+
+def test_reconcile_rejects_duplicate_sample_index() -> None:
     with pytest.raises(ValueError, match="duplicate"):
-        scan.reconcile(["a"], [{"host": "a"}, {"host": "a"}])
+        scan.reconcile(["a"], [_sample("a", 0), _sample("a", 0)])
+
+
+def test_reconcile_rejects_out_of_range_sample_index() -> None:
+    with pytest.raises(ValueError, match="out-of-range"):
+        scan.reconcile(["a"], [_sample("a", SAMPLES_PER_HOST)])
+    with pytest.raises(ValueError, match="out-of-range"):
+        scan.reconcile(["a"], [_sample("a", -1)])
 
 
 def test_run_probe_empty_hosts_skips_subprocess() -> None:
@@ -48,14 +69,22 @@ def test_run_probe_empty_hosts_skips_subprocess() -> None:
 def test_run_probe_parses_jsonl(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeProc:
         stdout = (
-            '{"host":"a","group_id":4588,"group":"X25519MLKEM768"}\n'
+            '{"host":"a","sample_index":0,"group_id":4588,"group":"X25519MLKEM768"}\n'
             "\n"
-            '{"host":"b","group_id":29,"group":"X25519"}\n'
+            '{"host":"b","sample_index":0,"group_id":29,"group":"X25519"}\n'
         )
 
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: FakeProc())
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(cmd: list[str], **kwargs: object) -> FakeProc:
+        captured["cmd"] = cmd
+        return FakeProc()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
     out = scan.run_probe(Path("/probe"), ["a", "b"])
     assert [r["host"] for r in out] == ["a", "b"]
+    # -samples must reflect the fixed methodology constant, not be hardcoded.
+    assert captured["cmd"] == ["/probe", "-samples", str(SAMPLES_PER_HOST), "a", "b"]
 
 
 def test_scan_writes_raw_and_dataset(
@@ -66,13 +95,11 @@ def test_scan_writes_raw_and_dataset(
 
     monkeypatch.setattr(scan, "build_probe", lambda out: out)
     fake_results = [
-        {"host": "b.example", "group_id": 29, "group": "X25519", "tls_version": 772},
-        {
-            "host": "a.example",
-            "group_id": 4588,
-            "group": "X25519MLKEM768",
-            "tls_version": 772,
-        },
+        _sample("b.example", i, group_id=29, group="X25519", tls_version=772)
+        for i in range(SAMPLES_PER_HOST)
+    ] + [
+        _sample("a.example", i, group_id=4588, group="X25519MLKEM768", tls_version=772)
+        for i in range(SAMPLES_PER_HOST)
     ]
     monkeypatch.setattr(scan, "run_probe", lambda binary, hosts: fake_results)
     monkeypatch.setattr(scan, "_provenance", lambda: {"go_version": "t", "godebug": ""})
@@ -83,9 +110,16 @@ def test_scan_writes_raw_and_dataset(
     data = json.loads(dataset_path.read_text())
     assert data["counts"] == {"supported": 1, "not_observed": 1, "unknown": 0}
     assert [e["host"] for e in data["entries"]] == ["a.example", "b.example"]
+    assert data["samples_per_host"] == SAMPLES_PER_HOST
     assert "provenance" not in data  # provenance lives in the sidecar, not here
-    raw_lines = (out_dir / "raw-2026-07.jsonl").read_text().splitlines()
-    assert json.loads(raw_lines[0])["host"] == "a.example"
+
+    raw_lines = [
+        json.loads(line)
+        for line in (out_dir / "raw-2026-07.jsonl").read_text().splitlines()
+    ]
+    assert [(r["host"], r["sample_index"]) for r in raw_lines] == [
+        (h, i) for h in ("a.example", "b.example") for i in range(SAMPLES_PER_HOST)
+    ]
 
     manifest = json.loads((out_dir / "manifest-2026-07.json").read_text())
     assert manifest["go_version"] == "t"
@@ -111,10 +145,12 @@ def test_committed_dataset_rederives_from_raw() -> None:
         if line.strip()
     ]
     targets_file = _REPO_ROOT / "targets" / f"{run_date}.txt"
-    targets_sha = hashlib.sha256(targets_file.read_bytes()).hexdigest()
+    hosts, targets_sha = scan.load_targets(targets_file)
     assert targets_sha == dataset["targets_sha256"]
 
-    rebuilt = build_dataset(raw, run_date=run_date, targets_sha256=targets_sha)
+    rebuilt = build_dataset(
+        raw, hosts=hosts, run_date=run_date, targets_sha256=targets_sha
+    )
     expected = json.dumps(dataset, indent=2, sort_keys=True) + "\n"
     actual = json.dumps(rebuilt, indent=2, sort_keys=True) + "\n"
     assert actual == expected
