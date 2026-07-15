@@ -99,12 +99,39 @@ def _provenance() -> dict[str, str]:
     return {"go_version": go_version, "godebug": os.environ.get("GODEBUG", "")}
 
 
-def _write(path: Path, text: str) -> str:
-    """Write UTF-8 text with LF newlines and return its sha256."""
-    data = text.encode("utf-8")
-    with path.open("wb") as f:
-        f.write(data)
-    return hashlib.sha256(data).hexdigest()
+def _publish_atomic(artifacts: dict[Path, str]) -> None:
+    """Stage every artifact to a sibling temp file, verify each was written
+    intact, and only then swap all of them into place. A run that dies partway
+    through must leave the previously published set untouched, not a raw file
+    beside a stale dataset/manifest.
+
+    ponytail: per-file os.replace is atomic, but publishing the set of three
+    is still a tight loop, not one transaction — a crash between two replaces
+    can still leave a torn set on disk. The manifest binds the three shas
+    together so that's detectable after the fact, and a full set-atomic swap
+    (writing to a fresh run-dir and renaming the directory) isn't worth the
+    layout change for three small files."""
+    tmp_paths: list[Path] = []
+    try:
+        for path, text in artifacts.items():
+            data = text.encode("utf-8")
+            want_sha = hashlib.sha256(data).hexdigest()
+            tmp = path.with_suffix(path.suffix + f".tmp-{os.getpid()}")
+            tmp_paths.append(tmp)
+            with tmp.open("wb") as f:
+                f.write(data)
+                f.flush()
+                os.fsync(f.fileno())
+            got_sha = hashlib.sha256(tmp.read_bytes()).hexdigest()
+            if got_sha != want_sha:
+                raise OSError(f"short/torn write staging {path.name}: sha mismatch")
+        for path in artifacts:
+            tmp = path.with_suffix(path.suffix + f".tmp-{os.getpid()}")
+            os.replace(tmp, path)
+            tmp_paths.remove(tmp)
+    finally:
+        for tmp in tmp_paths:
+            tmp.unlink(missing_ok=True)
 
 
 def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
@@ -114,16 +141,12 @@ def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     ordered = sorted(results, key=lambda r: (r["host"], r.get("sample_index", 0)))
-    raw_sha = _write(
-        out_dir / f"raw-{run_date}.jsonl",
-        "".join(json.dumps(r, sort_keys=True) + "\n" for r in ordered),
-    )
+    raw_text = "".join(json.dumps(r, sort_keys=True) + "\n" for r in ordered)
+    raw_sha = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
 
     dataset = build_dataset(results, hosts=hosts, run_date=run_date, targets_sha256=sha)
-    dataset_path = out_dir / f"pqc-adoption-{run_date}.json"
-    dataset_sha = _write(
-        dataset_path, json.dumps(dataset, indent=2, sort_keys=True) + "\n"
-    )
+    dataset_text = json.dumps(dataset, indent=2, sort_keys=True) + "\n"
+    dataset_sha = hashlib.sha256(dataset_text.encode("utf-8")).hexdigest()
 
     # Provenance and artifact hashes live in a sidecar, outside the byte-
     # identical reproducibility contract of the dataset itself.
@@ -134,8 +157,14 @@ def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
         "targets_sha256": sha,
         **_provenance(),
     }
-    _write(
-        out_dir / f"manifest-{run_date}.json",
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+    manifest_text = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+
+    dataset_path = out_dir / f"pqc-adoption-{run_date}.json"
+    _publish_atomic(
+        {
+            out_dir / f"raw-{run_date}.jsonl": raw_text,
+            dataset_path: dataset_text,
+            out_dir / f"manifest-{run_date}.json": manifest_text,
+        }
     )
     return dataset_path
