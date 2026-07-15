@@ -6,17 +6,24 @@ endpoints and reading the group the server negotiated in its ServerHello. The
 output is a versioned, reproducible dataset.
 
 The signal is deliberately narrow: a host counts as `supported` only when the
-server actually negotiated the PQC group. Nothing is inferred from cipher
-lists, ALPN, or banners. Timeouts, handshake errors, and TLS 1.2-only servers
-are recorded as `unknown`, never as a negative or a false positive.
+server negotiated the PQC group over a completed, certificate-verified TLS 1.3
+handshake. Nothing is inferred from cipher lists, ALPN, or banners. A server
+that negotiated a classical group is `not_observed` — that proves PQC was not
+selected on this path, not that the server is incapable of it. Timeouts,
+handshake errors, certificate failures, and TLS 1.2-only servers are `unknown`,
+never a false positive.
 
 ## How it works
 
-A small Go probe (`probe/`, using Go's `crypto/tls`) offers
-`[X25519MLKEM768, X25519]` over TLS 1.3 and reports the negotiated group. A
-Python layer (`src/pqc_observatory/`) runs the probe over a pinned target list
-and derives the dataset. Verdict logic is pure and unit-tested; the dataset
-re-derives byte-identically from the raw handshake results.
+A small Go probe (`probe/`, using Go's `crypto/tls`) enables
+`X25519MLKEM768` and `X25519` over TLS 1.3 and reports the group the server
+selected. Go ignores the offered order and applies its own preference, so the
+two groups are an enabled set, not a ranking. Certificate identity is verified
+against the hostname, so a result is only attributed to an endpoint that proved
+that identity. A Python layer (`src/pqc_observatory/`) runs the probe over a
+pinned target list, reconciles one result per host, and derives the dataset.
+Verdict logic is pure and unit-tested; the dataset re-derives byte-identically
+from the raw handshake results.
 
 Cross-checked independently with OpenSSL 3.6 (`openssl s_client -groups
 X25519MLKEM768`), which agrees with the probe on the negotiated group.
@@ -46,4 +53,6 @@ and counts).
 
 Only public TLS handshakes against public endpoints, one handshake per host, no
 authentication and no scanning of private infrastructure — the same kind of
-capability measurement SSL Labs and Cloudflare Radar publish.
+capability measurement SSL Labs and Cloudflare Radar publish. A peer that
+resolves to a private, loopback, or link-local address is rejected rather than
+probed.
