@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from typing import cast
 
 import pytest
 
@@ -79,7 +80,7 @@ def test_bool_tls_version_is_unknown() -> None:
             "group_id": PQC_GROUP_ID,
             "group": "X25519MLKEM768",
         }
-        bad["tls_version"] = tv  # type: ignore[typeddict-item]
+        bad["tls_version"] = tv
         assert classify(bad) == "unknown"
 
 
@@ -117,7 +118,12 @@ def test_dataset_is_deterministic_and_sorted() -> None:
     results: list[ProbeResult] = [
         *_unanimous("b.example", _classical),
         *_unanimous("a.example", _supported),
-        *_samples(*[{"host": "c.example", "error": "timeout"} for _ in range(5)]),
+        *_samples(
+            *[
+                cast("ProbeResult", {"host": "c.example", "error": "timeout"})
+                for _ in range(5)
+            ]
+        ),
     ]
     hosts = ["a.example", "b.example", "c.example"]
     d1 = build_dataset(results, hosts=hosts, run_date="2026-07", targets_sha256="x")
@@ -212,7 +218,7 @@ def test_aggregate_rejects_wrong_sample_count() -> None:
 
 def test_aggregate_rejects_duplicate_sample_index() -> None:
     samples = _samples(*[_supported("a") for _ in range(SAMPLES_PER_HOST)])
-    samples[-1] = dict(samples[0])  # type: ignore[assignment]
+    samples[-1] = cast("ProbeResult", dict(samples[0]))
     with pytest.raises(ValueError, match="expected 5 samples"):
         aggregate("a", samples)
 

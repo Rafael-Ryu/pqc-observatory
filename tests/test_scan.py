@@ -2,11 +2,12 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from pqc_observatory import scan
-from pqc_observatory.dataset import SAMPLES_PER_HOST, build_dataset
+from pqc_observatory.dataset import SAMPLES_PER_HOST, ProbeResult, build_dataset
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,8 +27,8 @@ def test_load_targets_rejects_duplicates(tmp_path: Path) -> None:
         scan.load_targets(f)
 
 
-def _sample(host: str, i: int, **extra: object) -> dict[str, object]:
-    return {"host": host, "sample_index": i, **extra}
+def _sample(host: str, i: int, **extra: object) -> ProbeResult:
+    return cast("ProbeResult", {"host": host, "sample_index": i, **extra})
 
 
 def test_reconcile_synthesizes_missing_slots_up_to_samples_per_host() -> None:
