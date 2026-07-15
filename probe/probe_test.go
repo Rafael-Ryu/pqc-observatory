@@ -53,6 +53,21 @@ func TestWithPortAndHostname(t *testing.T) {
 	}
 }
 
+func TestSelfTestPasses(t *testing.T) {
+	if err := selfTest(); err != nil {
+		t.Fatalf("selfTest() = %v, want nil (ML-KEM must be offerable in a normal build)", err)
+	}
+}
+
+// Offering only X25519 simulates a poisoned effective ClientHello (what
+// GODEBUG=tlsmlkem=0 produces at runtime) without touching GODEBUG itself, so
+// the guard is proven deterministically in the test binary's own process.
+func TestSelfTestDetectsMissingGroup(t *testing.T) {
+	if err := runSelfTest([]tls.CurveID{tls.X25519}); err == nil {
+		t.Fatal("runSelfTest with no ML-KEM offered = nil, want an error")
+	}
+}
+
 // A self-signed server on loopback must never yield a supported result: the
 // certificate does not verify and the address is not public. This guards the
 // two precision invariants at once.

@@ -8,10 +8,16 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/big"
 	"net"
 	"os"
 	"sync"
@@ -39,6 +45,75 @@ func groupName(id tls.CurveID) string {
 	default:
 		return id.String()
 	}
+}
+
+// runSelfTest proves that clientCurves, offered over an in-memory pipe against
+// a server that accepts ONLY X25519MLKEM768, actually lands on ML-KEM. It
+// catches GODEBUG=tlsmlkem=0 (and any other runtime poisoning that strips the
+// group from Go's effective ClientHello despite the source still listing it)
+// before a single real host is contacted.
+func runSelfTest(clientCurves []tls.CurveID) error {
+	// The certificate exists only to let the loopback handshake complete;
+	// nobody verifies its identity (InsecureSkipVerify below), so a fresh
+	// throwaway key each run is correct and there is nothing to pin.
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return fmt.Errorf("selftest: generate key: %w", err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "pqc-observatory selftest"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		return fmt.Errorf("selftest: create certificate: %w", err)
+	}
+	cert := tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
+
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	serverConn := tls.Server(server, &tls.Config{
+		Certificates:     []tls.Certificate{cert},
+		MinVersion:       tls.VersionTLS13,
+		MaxVersion:       tls.VersionTLS13,
+		CurvePreferences: []tls.CurveID{tls.X25519MLKEM768},
+	})
+	clientConn := tls.Client(client, &tls.Config{
+		InsecureSkipVerify: true, // scoped: this checks our own runtime's offered groups, not a named peer's identity
+		MinVersion:         tls.VersionTLS13,
+		MaxVersion:         tls.VersionTLS13,
+		CurvePreferences:   clientCurves,
+	})
+
+	// net.Pipe has no timeout of its own; a wedged handshake would hang
+	// startup forever instead of failing loud, so bound it explicitly.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	serverErr := make(chan error, 1)
+	go func() { serverErr <- serverConn.HandshakeContext(ctx) }()
+
+	if err := clientConn.HandshakeContext(ctx); err != nil {
+		return fmt.Errorf("selftest: client handshake: %w", err)
+	}
+	if err := <-serverErr; err != nil {
+		return fmt.Errorf("selftest: server handshake: %w", err)
+	}
+
+	if got := clientConn.ConnectionState().CurveID; got != tls.X25519MLKEM768 {
+		return fmt.Errorf("selftest: negotiated group %v, want X25519MLKEM768 (ML-KEM missing from effective ClientHello)", got)
+	}
+	return nil
+}
+
+// selfTest exercises the exact group set the real probe sends, so it reflects
+// whatever the current runtime/GODEBUG actually offers, not just the source.
+func selfTest() error {
+	return runSelfTest(offered)
 }
 
 // isPublicIP reports whether ip is a globally routable unicast address. It
@@ -133,7 +208,21 @@ func withPort(host string) string {
 func main() {
 	samples := flag.Int("samples", 1, "independent samples per host")
 	spacing := flag.Duration("spacing", 750*time.Millisecond, "delay between samples of the same host")
+	selftestOnly := flag.Bool("selftest", false, "run the ML-KEM startup self-test and exit (0 pass / 1 fail), without probing hosts")
 	flag.Parse()
+
+	// Runs before any flag-dependent host work, and before the -selftest early
+	// exit below, so both entrypoints (CI's explicit -selftest and a normal
+	// scan) always confirm ML-KEM is actually offerable under this runtime
+	// before touching a single real host.
+	if err := selfTest(); err != nil {
+		fmt.Fprintln(os.Stderr, "probe: startup self-test failed, refusing to run (check for GODEBUG=tlsmlkem=0 or similar runtime poisoning):", err)
+		os.Exit(1)
+	}
+	if *selftestOnly {
+		os.Exit(0)
+	}
+
 	hosts := flag.Args()
 	if len(hosts) == 0 {
 		os.Exit(0)
