@@ -1,0 +1,157 @@
+{
+  "counts": {
+    "not_supported": 4,
+    "supported": 15,
+    "unknown": 1
+  },
+  "entries": [
+    {
+      "detail": "negotiated X25519",
+      "group": "X25519",
+      "group_id": 29,
+      "host": "amazon.com",
+      "verdict": "not_supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "apple.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "cloudflare-ech.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "cloudflare.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "duckduckgo.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "facebook.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519",
+      "group": "X25519",
+      "group_id": 29,
+      "host": "github.com",
+      "verdict": "not_supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "gitlab.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "gmail.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "google.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "instagram.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "meta.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "remote error: tls: handshake failure",
+      "group": "",
+      "group_id": 0,
+      "host": "microsoft.com",
+      "verdict": "unknown"
+    },
+    {
+      "detail": "negotiated X25519",
+      "group": "X25519",
+      "group_id": 29,
+      "host": "mozilla.org",
+      "verdict": "not_supported"
+    },
+    {
+      "detail": "negotiated X25519",
+      "group": "X25519",
+      "group_id": 29,
+      "host": "netflix.com",
+      "verdict": "not_supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "protonmail.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "signal.org",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "wikipedia.org",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "www.google.com",
+      "verdict": "supported"
+    },
+    {
+      "detail": "negotiated X25519MLKEM768",
+      "group": "X25519MLKEM768",
+      "group_id": 4588,
+      "host": "youtube.com",
+      "verdict": "supported"
+    }
+  ],
+  "methodology_version": "m0-2026-07",
+  "pqc_group": {
+    "id": 4588,
+    "name": "X25519MLKEM768"
+  },
+  "run_date": "2026-07",
+  "targets_sha256": "e5d244bb783ae61f836a81452299fe82e46a8048be67c0c9841f64532f9653ac",
+  "total": 20
+}

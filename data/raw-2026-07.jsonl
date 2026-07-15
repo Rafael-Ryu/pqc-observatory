@@ -1,0 +1,20 @@
+{"group": "X25519", "group_id": 29, "host": "amazon.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "apple.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare-ech.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "cloudflare.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "duckduckgo.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "facebook.com", "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "github.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gitlab.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "gmail.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "google.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "instagram.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "meta.com", "tls_version": 772}
+{"error": "remote error: tls: handshake failure", "group": "", "group_id": 0, "host": "microsoft.com", "tls_version": 0}
+{"group": "X25519", "group_id": 29, "host": "mozilla.org", "tls_version": 772}
+{"group": "X25519", "group_id": 29, "host": "netflix.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "protonmail.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "signal.org", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "wikipedia.org", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "www.google.com", "tls_version": 772}
+{"group": "X25519MLKEM768", "group_id": 4588, "host": "youtube.com", "tls_version": 772}
