@@ -78,7 +78,7 @@ def load_targets(path: Path) -> tuple[list[str], str]:
     return hosts, sha
 
 
-def _provenance(binary: Path) -> dict[str, str]:
+def _provenance() -> dict[str, str]:
     """Record what could silently change the measurement, so a poisoned run is
     detectable after the fact (notably GODEBUG=tlsmlkem=0, which removes ML-KEM
     from Go's key exchange set)."""
@@ -88,9 +88,12 @@ def _provenance(binary: Path) -> dict[str, str]:
     return {"go_version": go_version, "godebug": os.environ.get("GODEBUG", "")}
 
 
-def _write(path: Path, text: str) -> None:
-    with path.open("w", encoding="utf-8", newline="\n") as f:
-        f.write(text)
+def _write(path: Path, text: str) -> str:
+    """Write UTF-8 text with LF newlines and return its sha256."""
+    data = text.encode("utf-8")
+    with path.open("wb") as f:
+        f.write(data)
+    return hashlib.sha256(data).hexdigest()
 
 
 def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
@@ -100,17 +103,28 @@ def scan(targets_path: Path, out_dir: Path, run_date: str) -> Path:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     ordered = sorted(results, key=lambda r: r["host"])
-    _write(
+    raw_sha = _write(
         out_dir / f"raw-{run_date}.jsonl",
         "".join(json.dumps(r, sort_keys=True) + "\n" for r in ordered),
     )
 
-    dataset = build_dataset(
-        results,
-        run_date=run_date,
-        targets_sha256=sha,
-        provenance=_provenance(binary),
-    )
+    dataset = build_dataset(results, run_date=run_date, targets_sha256=sha)
     dataset_path = out_dir / f"pqc-adoption-{run_date}.json"
-    _write(dataset_path, json.dumps(dataset, indent=2, sort_keys=True) + "\n")
+    dataset_sha = _write(
+        dataset_path, json.dumps(dataset, indent=2, sort_keys=True) + "\n"
+    )
+
+    # Provenance and artifact hashes live in a sidecar, outside the byte-
+    # identical reproducibility contract of the dataset itself.
+    manifest = {
+        "run_date": run_date,
+        "dataset_sha256": dataset_sha,
+        "raw_sha256": raw_sha,
+        "targets_sha256": sha,
+        **_provenance(),
+    }
+    _write(
+        out_dir / f"manifest-{run_date}.json",
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+    )
     return dataset_path
