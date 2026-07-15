@@ -219,9 +219,19 @@ above).
 
 Published datasets are additionally signed over the manifest bytes using
 Sigstore keyless signing (Fulcio/Rekor), issued to the release workflow's
-GitHub Actions OIDC identity. The exact verification command, constrained
-to that identity, will be documented alongside the signing workflow when it
-ships.
+GitHub Actions OIDC identity. Each published dataset is a GitHub Release
+tagged `data-YYYY-MM`, whose manifest is signed by the `sign-dataset`
+workflow on tag push; the signature bundle (`manifest-YYYY-MM.json.sigstore`)
+is a release asset alongside the manifest, dataset, and raw files.
+
+To verify a release, for example `data-2026-07`:
+
+```
+cosign verify-blob data/manifest-2026-07.json \
+  --bundle data/manifest-2026-07.json.sigstore \
+  --certificate-identity "https://github.com/Rafael-Ryu/pqc-observatory/.github/workflows/sign.yml@refs/tags/data-2026-07" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
 
 A valid signature proves that the named release workflow published exactly
 these bytes. It does not prove that the probe actually contacted the hosts
